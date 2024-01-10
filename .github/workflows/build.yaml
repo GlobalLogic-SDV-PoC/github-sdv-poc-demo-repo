@@ -18,7 +18,7 @@ jobs:
       - name: Build
         id: build
         run: |
-          sudo apt-get update
+          apt-get update
           apt-get install sshpass -y
           sshpass -p "raspberry" ssh pi@172.22.187.21 lscpu
 
