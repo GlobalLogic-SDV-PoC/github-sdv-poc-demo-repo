@@ -18,4 +18,5 @@ jobs:
       - name: Build
         id: build
         run: |
+          ping -c 5 172.22.187.21
           echo "This is a new patchset"
