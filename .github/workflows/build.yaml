@@ -19,7 +19,7 @@ jobs:
         id: build
         run: |
           apt-get update
-          apt-get install sshpass -y
+          apt-get install ssh sshpass -y
           sshpass -p "raspberry" ssh pi@172.22.187.21 lscpu
 
           echo "This is a new patchset"
