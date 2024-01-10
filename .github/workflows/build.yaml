@@ -15,6 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Build
+        id: build
+        run: |
+
+          echo ${{ secrets.TARGET_PASSWORD }}
+
+
       - name: Run sshpass commands
         uses: matheusvanzan/sshpass-action@v2
         with:
@@ -22,9 +29,3 @@ jobs:
           user: pi
           pass: ${{ secrets.TARGET_PASSWORD }}
           run: lscpu
-
-      - name: Build
-        id: build
-        run: |
-
-          echo "This is a new patchset"
