@@ -18,5 +18,6 @@ jobs:
       - name: Build
         id: build
         run: |
+          apt-get install iputils-ping -y
           ping -c 5 172.22.187.21
           echo "This is a new patchset"
