@@ -18,6 +18,7 @@ jobs:
       - name: Build
         id: build
         run: |
-          apt-get install iputils-ping -y
-          ping -c 5 172.22.187.21
+          apt install sshpass -y
+          sshpass -p "raspberry" ssh pi@172.22.187.21 lscpu
+
           echo "This is a new patchset"
