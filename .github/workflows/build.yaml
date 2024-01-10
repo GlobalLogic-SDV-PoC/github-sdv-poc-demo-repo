@@ -15,15 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: sshpass
-
       - name: Build
         id: build
         run: |
-          apt update
-          apt install sshpass -y
+          sudo apt-get update
+          apt-get install sshpass -y
           sshpass -p "raspberry" ssh pi@172.22.187.21 lscpu
 
           echo "This is a new patchset"
