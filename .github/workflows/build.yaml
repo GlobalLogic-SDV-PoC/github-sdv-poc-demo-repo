@@ -28,4 +28,6 @@ jobs:
           host: 172.22.187.21
           user: pi
           pass: ${{ secrets.TARGET_PASSWORD }}
-          run: lscpu
+          run: |
+            uname -a
+            lscpu
