@@ -19,7 +19,7 @@ jobs:
         id: build
         run: |
 
-          echo ${{ secrets.TARGET_PASSWORD }}
+          echo "demo"
 
 
       - name: Run sshpass commands
