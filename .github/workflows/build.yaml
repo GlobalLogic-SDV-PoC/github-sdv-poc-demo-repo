@@ -19,7 +19,7 @@ jobs:
         id: build
         run: |
 
-          echo "demo"
+          echo "demo sdv-poc"
 
 
       - name: Run sshpass commands
