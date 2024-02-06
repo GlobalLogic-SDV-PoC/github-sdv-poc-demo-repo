@@ -15,19 +15,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build
-        id: build
-        run: |
 
-          echo "demo sdv-poc"
-
-
-      - name: Run sshpass commands
-        uses: matheusvanzan/sshpass-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v5
         with:
-          host: 172.22.187.21
-          user: pi
-          pass: ${{ secrets.TARGET_PASSWORD }}
-          run: |
-            uname -a
-            lscpu
+          context: .
+          file: ./template.Dockerfile
+          push: false
+          tags: hitachiastemo-tools/tools:latest
+          secrets: |
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            PACKAGE_NAME=     "hitachiastemo-tools"
+            VERSION=          "5.0.0"
+            RELEASE_NUM=      "1"
+            ARCH=             "all"
+            DESCRIPTION=      "Customized LLVM"
+            SRC_FOLDER=       "hitachiastemo-tools"
+            DST_FOLDER=       "tools"
+            HOMEPAGE=         "https://www.hitachiastemo.com"
+            DEPS=             "libc6"
+            MAINTAINER_NAME=  "hitachiastemo"
+            MAINTAINER_EMAIL= "ha@dropmail.cc"
