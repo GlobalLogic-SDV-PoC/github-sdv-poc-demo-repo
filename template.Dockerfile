@@ -121,6 +121,6 @@ RUN aptly repo list \
   && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
   && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
 
-RUN tar -czvf aptly-db.tar .aptly/db .aptly.conf \
+RUN tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
   && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
   && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
