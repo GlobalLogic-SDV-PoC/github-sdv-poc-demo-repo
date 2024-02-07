@@ -30,25 +30,12 @@ ARG MAINTAINER_EMAIL=root@localhost
 ARG SRC_FOLDER=src
 ARG DST_FOLDER=src
 
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY
-ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-
-# # RUN export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-
-# RUN aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-# RUN aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-
 RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
   && aws configure set region "eu-west-1" \
-  && cat $HOME/.aws/credentials \
-  && aws s3 ls
-
-# RUN aws s3 ls
+  && aws s3 cp dev-apt-repository/astemo-tools.tgz .
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
@@ -77,66 +64,76 @@ RUN dpkg --build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}
 # RUN dpkg-deb --contents ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb
 
 
-# ## Make a package container
-# FROM debian as pre_pkg
+## Make a package container
+FROM debian as pre_pkg
 
-# RUN apt update && apt install -y gpg curl unzip less
+RUN apt update && apt install -y gpg curl unzip less
 
-# RUN curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
-#   && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
+RUN curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
+  && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
 
-# RUN apt-get -q update \
-#   && apt-get -y install aptly=1.5.0 bzip2 xz-utils gnupg gpgv libc6 \
-#   && apt-get clean \
-#   && rm -rf /var/lib/apt/lists/*
+RUN apt-get -q update \
+  && apt-get -y install aptly=1.5.0 bzip2 xz-utils gnupg gpgv libc6 \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
-# RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
-#   && unzip awscliv2.zip \
-#   && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+  && unzip awscliv2.zip \
+  && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
-# ## Make a package container
-# FROM pre_pkg as pkg
+## Make a package container
+FROM pre_pkg as pkg
 
-# ## each ARG is MUST be defined as ENV for the container. Otherwice cannot be used in the CMD
-# ARG PACKAGE_NAME
-# ENV PACKAGE_NAME=$PACKAGE_NAME
-# ARG VERSION
-# ENV VERSION=$VERSION
-# ARG RELEASE_NUM
-# ENV RELEASE_NUM=$RELEASE_NUM
-# ARG ARCH
-# ENV ARCH=$ARCH
+## each ARG is MUST be defined as ENV for the container. Otherwice cannot be used in the CMD
+ARG PACKAGE_NAME
+ENV PACKAGE_NAME=$PACKAGE_NAME
+ARG VERSION
+ENV VERSION=$VERSION
+ARG RELEASE_NUM
+ENV RELEASE_NUM=$RELEASE_NUM
+ARG ARCH
+ENV ARCH=$ARCH
 
-# # RUN --mount=type=secret,id=aws,target=/root/.aws/credentials cat /root/.aws/credentials
+WORKDIR /root/
 
-# # ARG AWS_ACCESS_KEY_ID
-# # ARG AWS_SECRET_ACCESS_KEY
-# # ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-# # ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
+ --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
+  aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
+  && aws configure set region "eu-west-1" \
+  && while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
-# # RUN export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+RUN touch aptly-db.lock
 
-# WORKDIR /root/
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
+ --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
+  aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
+  && aws configure set region "eu-west-1" \
+  && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
+  && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
 
-# RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
+RUN tar -xzvf aptly-db.tar  \
+  && gpg --import --batch public.pgp private.pgp \
+  && rm aptly-db.tar
 
-# RUN touch aptly-db.lock
-
-# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
-#   && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
-
-# RUN tar -xzvf aptly-db.tar  \
-#   && gpg --import --batch public.pgp private.pgp \
-#   && rm aptly-db.tar
-
-
-# COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
+COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
 
 
-# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aptly repo list \
-#   && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
-#   && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
 
-# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
-#   && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
-#   && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
+ --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
+  aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
+  && aws configure set region "eu-west-1" \
+  && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
+  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
+
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
+ --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
+  aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
+  && aws configure set region "eu-west-1" \
+  && tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
+  && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
+  && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
