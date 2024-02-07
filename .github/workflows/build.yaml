@@ -28,16 +28,16 @@ jobs:
           push: false
           tags: hitachiastemo-tools/tools:latest
           build-args: |
-            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            PACKAGE_NAME=     "hitachiastemo-tools"
-            VERSION=          "5.0.0"
-            RELEASE_NUM=      "1"
-            ARCH=             "all"
-            DESCRIPTION=      "Customized LLVM"
-            SRC_FOLDER=       "hitachiastemo-tools"
-            DST_FOLDER=       "tools"
-            HOMEPAGE=         "https://www.hitachiastemo.com"
-            DEPS=             "libc6"
-            MAINTAINER_NAME=  "hitachiastemo"
-            MAINTAINER_EMAIL= "ha@dropmail.cc"
+            "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
+            "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            "PACKAGE_NAME="hitachiastemo-tools""
+            "VERSION="5.0.0""
+            "RELEASE_NUM="1""
+            "ARCH="all""
+            "DESCRIPTION="Customized LLVM""
+            "SRC_FOLDER="hitachiastemo-tools""
+            "DST_FOLDER="tools""
+            "HOMEPAGE="https://www.hitachiastemo.com""
+            "DEPS="libc6""
+            "MAINTAINER_NAME="hitachiastemo""
+            "MAINTAINER_EMAIL="ha@dropmail.cc""
