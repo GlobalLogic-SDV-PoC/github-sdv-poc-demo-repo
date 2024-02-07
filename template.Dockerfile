@@ -107,8 +107,9 @@ WORKDIR /root/
 
 RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
-RUN touch aptly-db.lock \
-  && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
+RUN touch aptly-db.lock
+
+RUN aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
   && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
 
 RUN tar -xzvf aptly-db.tar  \
