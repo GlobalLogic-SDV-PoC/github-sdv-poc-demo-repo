@@ -37,9 +37,9 @@ RUN export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 RUN aws s3 cp s3://dev-apt-repository/astemo-tools.tgz . \
-  && tar -xzvf astemo-tools.tgz
-
-COPY ./${SRC_FOLDER} ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/${DST_FOLDER}
+  && tar -xzvf astemo-tools.tgz \
+  && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
+  && mv ./hitachiastemo-tools ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/${DST_FOLDER}
 
 RUN find . -name ".git" -o -name ".git*" | xargs -I{} rm -rvf {};\
 	mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/DEBIAN && \
@@ -73,7 +73,7 @@ RUN curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/tr
   && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
 
 RUN apt-get -q update \
-  && apt-get -y install aptly=1.5.0 \
+  && apt-get -y install aptly=1.5.0 bzip2 xz-utils gnupg gpgv libc6 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -97,6 +97,8 @@ ENV ARCH=$ARCH
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
+WORKDIR /root/
+
 RUN echo "Export AWS credentials" \
   && export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
@@ -107,15 +109,18 @@ RUN touch aptly-db.lock \
   && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
   && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar . \
   # && aws s3 cp s3://dev-apt-repository/keys/public.gpg . \
-  && tar -xzvf aptly-db.tar \
+  && tar -xzvf aptly-db.tar  \
+  && gpg --import --batch public.pgp private.pgp \
   && rm aptly-db.tar
 
 
 COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
 
 
-RUN aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
-  && aptly publish update --gpg-key=E4427DA3 stable s3:dev-apt-repository:tools
+RUN aptly repo list \
+  && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
+  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
 
 RUN tar -czvf aptly-db.tar .aptly/db .aptly.conf \
-  && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar
+  && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
+  && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
