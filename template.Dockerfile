@@ -40,9 +40,10 @@ ARG DST_FOLDER=src
 # RUN aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
 # RUN aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
 
-RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID export AWS_ACCESS_KEY_ID=$(cat /run/secrets/AWS_ACCESS_KEY_ID) \ 
- --mount=type=secret,id=AWS_SECRET_ACCESS_KEY export AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  aws s3 ls
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
+ --mount=type=secret,id=AWS_SECRET_ACCESS_KEY export AWS_ACCESS_KEY_ID=$(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && export AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
+  && aws s3 ls
 
 # RUN aws s3 ls
 
