@@ -8,7 +8,7 @@ ARG ARCH=all
 
 ## Stage 0: Golden image
 FROM debian:latest as golden
-RUN apt update && apt install -y dpkg-dev curl gpg && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt install -y dpkg-dev curl gpg unzip && rm -rf /var/lib/apt/lists/*
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
   && unzip awscliv2.zip \
   && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
@@ -65,7 +65,7 @@ RUN dpkg --build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}
 ## Make a package container
 FROM debian as pre_pkg
 
-RUN apt update && apt install -y gpg curl bzip2 less
+RUN apt update && apt install -y gpg curl unzip less
 
 RUN curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
   && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
