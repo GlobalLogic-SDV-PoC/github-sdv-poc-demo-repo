@@ -83,7 +83,9 @@ export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "true" ; done
 
-RUN aws s3 cp s3://dev-apt-repository/db/aptly-db.tar . \
+RUN touch aptly-db.lock \
+  && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.tar \
+  && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar . \
   && aws s3 cp s3://dev-apt-repository/keys/public.gpg .
   && tar -xzvf aptly-db.tar
   && rm aptly-db.tar
