@@ -36,8 +36,9 @@ ARG AWS_SECRET_ACCESS_KEY
 RUN export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
-RUN aws s3 cp s3://dev-apt-repository/astemo-tools.tgz . \
-  && tar -xzvf astemo-tools.tgz \
+RUN aws s3 cp s3://dev-apt-repository/astemo-tools.tgz .
+
+RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
   && mv ./hitachiastemo-tools ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/${DST_FOLDER}
 
