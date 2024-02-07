@@ -27,7 +27,7 @@ jobs:
           file: ./template.Dockerfile
           push: false
           tags: hitachiastemo-tools/tools:latest
-          secrets: |
+          build-args: |
             AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             PACKAGE_NAME=     "hitachiastemo-tools"
