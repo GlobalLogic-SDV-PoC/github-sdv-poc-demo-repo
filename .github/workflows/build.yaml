@@ -32,7 +32,7 @@ jobs:
             "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           build-args: |
             PACKAGE_NAME=hitachiastemo-tools
-            VERSION=5.0.0
+            VERSION=5.0.1
             RELEASE_NUM=1
             ARCH=all
             DESCRIPTION=Customized LLVM
