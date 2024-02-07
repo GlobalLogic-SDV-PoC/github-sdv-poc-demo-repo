@@ -8,7 +8,9 @@ ARG ARCH=all
 
 ## Stage 0: Golden image
 FROM debian:latest as golden
+
 RUN apt update && apt install -y dpkg-dev curl gpg unzip && rm -rf /var/lib/apt/lists/*
+
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
   && unzip awscliv2.zip \
   && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
@@ -95,10 +97,11 @@ ENV ARCH=$ARCH
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
-RUN export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+RUN echo "Export AWS credentials" \
+  && export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
-RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "true" ; done
+RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
 RUN touch aptly-db.lock \
   && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
