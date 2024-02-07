@@ -31,8 +31,8 @@ ARG DST_FOLDER=src
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
-export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+RUN export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+  && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 RUN aws s3 cp s3://dev-apt-repository/astemo-tools.tgz . \
   && tar -xzvf astemo-tools.tgz
@@ -90,8 +90,8 @@ ENV ARCH=$ARCH
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
-export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+RUN export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+  && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "true" ; done
 
