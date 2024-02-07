@@ -6,10 +6,7 @@ jobs:
   build:
     name: Build
     container: ubuntu:latest
-    runs-on:
-      - self-hosted
-      - k8s-api
-      - linux-arm64-s
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout

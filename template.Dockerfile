@@ -8,7 +8,10 @@ ARG ARCH=all
 
 ## Stage 0: Golden image
 FROM debian:latest as golden
-RUN apt update && apt install -y dpkg-dev gpg && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt install -y dpkg-dev curl gpg && rm -rf /var/lib/apt/lists/*
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+  && unzip awscliv2.zip \
+  && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 ## Stage 1: Do packing
 FROM golden as build
@@ -24,6 +27,15 @@ ARG MAINTAINER_NAME=root
 ARG MAINTAINER_EMAIL=root@localhost
 ARG SRC_FOLDER=src
 ARG DST_FOLDER=src
+
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+
+export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+RUN aws s3 cp s3://dev-apt-repository/astemo-tools.tgz . \
+  && tar -xzvf astemo-tools.tgz
 
 COPY ./${SRC_FOLDER} ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/${DST_FOLDER}
 
