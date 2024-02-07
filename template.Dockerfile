@@ -103,8 +103,8 @@ RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "con
 RUN touch aptly-db.lock \
   && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.tar \
   && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar . \
-  && aws s3 cp s3://dev-apt-repository/keys/public.gpg .
-  && tar -xzvf aptly-db.tar
+  && aws s3 cp s3://dev-apt-repository/keys/public.gpg . \
+  && tar -xzvf aptly-db.tar \
   && rm aptly-db.tar
 
 
