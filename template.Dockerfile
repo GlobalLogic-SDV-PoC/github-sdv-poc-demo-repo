@@ -39,7 +39,7 @@ ARG DST_FOLDER=src
 
 # RUN --mount=type=secret,id=aws,target=/root/.aws/credentials cat /root/.aws/credentials
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 cp s3://dev-apt-repository/astemo-tools.tgz .
+RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 ls
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
@@ -109,25 +109,25 @@ ENV ARCH=$ARCH
 
 WORKDIR /root/
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
+# RUN while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
-RUN touch aptly-db.lock
+# RUN touch aptly-db.lock
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
-  && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
+# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
+#   && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
 
-RUN tar -xzvf aptly-db.tar  \
-  && gpg --import --batch public.pgp private.pgp \
-  && rm aptly-db.tar
-
-
-COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
+# RUN tar -xzvf aptly-db.tar  \
+#   && gpg --import --batch public.pgp private.pgp \
+#   && rm aptly-db.tar
 
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aptly repo list \
-  && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
-  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
+# COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
-  && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
-  && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
+
+# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aptly repo list \
+#   && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
+#   && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
+
+# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
+#   && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
+#   && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
