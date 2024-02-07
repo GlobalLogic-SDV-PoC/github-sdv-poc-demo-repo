@@ -30,19 +30,21 @@ ARG MAINTAINER_EMAIL=root@localhost
 ARG SRC_FOLDER=src
 ARG DST_FOLDER=src
 
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY
-# ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-# ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+# ARG AWS_ACCESS_KEY_ID
+# ARG AWS_SECRET_ACCESS_KEY
+# # ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+# # ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
-# RUN export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+# # RUN export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
-RUN aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-RUN aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+# RUN aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+# RUN aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
 
-# RUN --mount=type=secret,id=aws,target=/root/.aws/credentials cat /root/.aws/credentials
+RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID export AWS_ACCESS_KEY_ID=$(cat /run/secrets/AWS_ACCESS_KEY_ID) \ 
+  && --mount=type=secret,id=AWS_SECRET_ACCESS_KEY export AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/AWS_ACCESS_KEY_ID) \
+  && aws s3 ls
 
-RUN aws s3 ls
+# RUN aws s3 ls
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
