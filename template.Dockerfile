@@ -39,7 +39,7 @@ ARG DST_FOLDER=src
 
 # RUN --mount=type=secret,id=aws,target=/root/.aws/credentials cat /root/.aws/credentials
 
-RUN --mount=type=secret,id=aws,target=/root/.aws/credentials && aws s3 ls
+RUN --mount=type=secret,id=aws,target=/root/.aws/credentials aws s3 ls
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
