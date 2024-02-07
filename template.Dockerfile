@@ -42,7 +42,12 @@ COPY ./${SRC_FOLDER} ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/${DST
 RUN find . -name ".git" -o -name ".git*" | xargs -I{} rm -rvf {};\
 	mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/DEBIAN && \
 	echo "Package: ${PACKAGE_NAME}-${VERSION} \n\
-Provides: ${PACKAGE_NAME} (= ${VERSION}) \n\ng the env variable in quotes when running printf. That fixed it
+Provides: ${PACKAGE_NAME} (= ${VERSION}) \n\
+Version: ${VERSION} \n\
+Maintainer: ${MAINTAINER_NAME} <${MAINTAINER_EMAIL}> \n\
+Depends: ${DEPS} \n\
+Section: utils \n\
+Priority: optional \n\
 Architecture: ${ARCH} \n\
 Homepage: ${HOMEPAGE} \n\
 Installed-Size: $(( $(du -sb ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH} | awk '{print $1}') / 1024 )) \n\
