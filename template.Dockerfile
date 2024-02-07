@@ -35,7 +35,7 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
   && aws configure set region "eu-west-1" \
-  && aws s3 cp dev-apt-repository/astemo-tools.tgz .
+  && aws s3 cp s3://dev-apt-repository/astemo-tools.tgz .
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
