@@ -1,5 +1,4 @@
-name: Main
-
+name: Main manual pipeline
 
 on:
   workflow_dispatch:
