@@ -29,13 +29,15 @@ ARG MAINTAINER_NAME=root
 ARG MAINTAINER_EMAIL=root@localhost
 ARG SRC_FOLDER=src
 ARG DST_FOLDER=src
+ARG APT_REPO_S3
+ARG AWS_REGION
 
 RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  && aws configure set region "eu-west-1" \
-  && aws s3 cp s3://dev-apt-repository/astemo-tools.tgz .
+  && aws configure set region ${AWS_REGION} \
+  && aws s3 cp s3://${APT_REPO_S3}/astemo-tools.tgz .
 
 RUN tar -xzvf astemo-tools.tgz \
   && mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/opt/ \
@@ -43,7 +45,7 @@ RUN tar -xzvf astemo-tools.tgz \
 
 RUN find . -name ".git" -o -name ".git*" | xargs -I{} rm -rvf {};\
 	mkdir -p ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}/DEBIAN && \
-	echo "Package: ${PACKAGE_NAME}-${VERSION} \n\
+	echo "Package: ${PACKAGE_NAME} \n\
 Provides: ${PACKAGE_NAME} (= ${VERSION}) \n\
 Version: ${VERSION} \n\
 Maintainer: ${MAINTAINER_NAME} <${MAINTAINER_EMAIL}> \n\
@@ -93,6 +95,9 @@ ARG RELEASE_NUM
 ENV RELEASE_NUM=$RELEASE_NUM
 ARG ARCH
 ENV ARCH=$ARCH
+ARG DST_FOLDER
+ARG APT_REPO_S3
+ARG AWS_REGION
 
 WORKDIR /root/
 
@@ -100,8 +105,8 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  && aws configure set region "eu-west-1" \
-  && while [ $(aws s3api list-objects-v2 --bucket dev-apt-repository --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
+  && aws configure set region ${AWS_REGION} \
+  && while [ $(aws s3api list-objects-v2 --bucket ${APT_REPO_S3} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
 RUN touch aptly-db.lock
 
@@ -109,9 +114,9 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  && aws configure set region "eu-west-1" \
-  && aws s3 cp aptly-db.lock s3://dev-apt-repository/db/aptly-db.lock \
-  && aws s3 cp s3://dev-apt-repository/db/aptly-db.tar .
+  && aws configure set region ${AWS_REGION} \
+  && aws s3 cp aptly-db.lock s3://${APT_REPO_S3}/db/aptly-db.lock \
+  && aws s3 cp s3://${APT_REPO_S3}/db/aptly-db.tar .
 
 RUN tar -xzvf aptly-db.tar  \
   && gpg --import --batch public.pgp private.pgp \
@@ -125,15 +130,15 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  && aws configure set region "eu-west-1" \
+  && aws configure set region ${AWS_REGION} \
   && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
-  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:dev-apt-repository:tools
+  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${APT_REPO_S3}:${DST_FOLDER}
 
 RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
-  && aws configure set region "eu-west-1" \
+  && aws configure set region ${AWS_REGION} \
   && tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
-  && aws s3 cp aptly-db.tar s3://dev-apt-repository/db/aptly-db.tar \
-  && aws s3 rm s3://dev-apt-repository/db/aptly-db.lock
+  && aws s3 cp aptly-db.tar s3://${APT_REPO_S3}/db/aptly-db.tar \
+  && aws s3 rm s3://${APT_REPO_S3}/db/aptly-db.lock

@@ -1,6 +1,28 @@
 name: Build
 on:
-  workflow_call:
+  workflow_dispatch:
+    inputs:
+      Version:
+        description: 'Package version'
+        required: true
+        default: 1.0.0
+        type: number
+      ReleaseNum:
+        description: 'Release Num'
+        required: true
+        default: 1
+        type: number
+      Architecture:
+        description: 'Architecture'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - arm64
+        - amd64
+
+
 
 jobs:
   build:
@@ -31,14 +53,16 @@ jobs:
             "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
             "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           build-args: |
-            PACKAGE_NAME=hitachiastemo-tools
-            VERSION=5.0.1
-            RELEASE_NUM=1
-            ARCH=all
+            PACKAGE_NAME=${{ vars.PACKAGE_NAME }}
+            VERSION=${{ inputs.Version }}
+            RELEASE_NUM=${{ inputs.ReleaseNum}}
+            ARCH=${{ inputs.Architecture}}
             DESCRIPTION=Customized LLVM
             SRC_FOLDER=hitachiastemo-tools
             DST_FOLDER=tools
             HOMEPAGE=https://www.hitachiastemo.com
             DEPS=libc6
-            MAINTAINER_NAME=hitachiastemo
+            MAINTAINER_NAME=${{ github.actor }}
             MAINTAINER_EMAIL=ha@dropmail.cc
+            APT_REPO_S3=${{ vars.APT_REPO_S3 }}
+            AWS_REGION=${{ vars.AWS_REGION }}
