@@ -116,11 +116,11 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
   && aws configure set region ${AWS_REGION} \
   && aws s3 cp aptly-db.lock s3://${APT_REPO_S3}/db/aptly-db.lock \
-  && aws s3 cp s3://${APT_REPO_S3}/db/aptly-db.tar .
-
-RUN tar -xzvf aptly-db.tar  \
+  && if [ $(aws s3api list-objects-v2 --bucket ${APT_REPO_S3} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]; \
+  then aws s3 cp s3://${APT_REPO_S3}/db/aptly-db.tar . \
+  && tar -xzvf aptly-db.tar  \
   && gpg --import --batch public.pgp private.pgp \
-  && rm aptly-db.tar
+  && rm aptly-db.tar; fi
 
 COPY --from=build ${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb /
 
@@ -131,8 +131,13 @@ RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \
   aws configure set aws_access_key_id $(cat /run/secrets/AWS_ACCESS_KEY_ID) \
   && aws configure set aws_secret_access_key $(cat /run/secrets/AWS_SECRET_ACCESS_KEY) \
   && aws configure set region ${AWS_REGION} \
+  && if [ $(aws s3api list-objects-v2 --bucket ${APT_REPO_S3} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]; \
+  then aws s3 cp s3://${APT_REPO_S3}/db/aptly-db.tar . \
   && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
-  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${APT_REPO_S3}:${DST_FOLDER}
+  && aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${APT_REPO_S3}:${DST_FOLDER}; \
+  else aptly repo create apt-repo \
+  && aptly repo add apt-repo /${PACKAGE_NAME}_${VERSION}-${RELEASE_NUM}_${ARCH}.deb \
+  && aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${APT_REPO_S3}:${DST_FOLDER}; fi
 
 RUN --mount=type=secret,id=AWS_ACCESS_KEY_ID \ 
  --mount=type=secret,id=AWS_SECRET_ACCESS_KEY \ 
