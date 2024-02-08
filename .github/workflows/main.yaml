@@ -1,6 +1,9 @@
 name: Main manual pipeline
 
 on:
+  push:
+    branches:
+      - "*"
   workflow_dispatch:
     inputs:
       Version:
