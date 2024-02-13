@@ -101,6 +101,7 @@ jobs:
 
       - name: Add package to aptly repo
         if: steps.lockRepo.outcome == 'success'
+        id: pushPackage
         run: |
           touch aptly-db.lock
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
@@ -108,7 +109,6 @@ jobs:
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
-            chmod -R 777 /home/runner/.aptly/
             pwd
             ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
@@ -127,6 +127,10 @@ jobs:
           aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar \
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
+      - name: Remove .lock
+        if: steps.pushPackage.outcome == 'failure'
+        run: |
+          aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
       # - name: Build and push
       #   uses: docker/build-push-action@v5.1.0
