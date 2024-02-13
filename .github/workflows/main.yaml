@@ -56,13 +56,13 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
 # FIX
+# mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
       - name: Download files
         run: |
           aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
           tar -xzvf astemo-tools.tgz
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/
           find . -name "./hitachiastemo-tools/.git" -o -name "./hitachiastemo-tools/.git*" | xargs -I{} rm -rvf {};\
-# mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
           echo "SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
 
