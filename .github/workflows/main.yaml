@@ -111,7 +111,9 @@ jobs:
             pwd
             ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
-            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
+            sudo aptly repo list
+            aptly repo list
+            sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm /home/runner/aptly-db.tar
           else
