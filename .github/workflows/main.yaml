@@ -63,7 +63,9 @@ jobs:
         run: |
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/
           find . -name "./hitachiastemo-tools/.git" -o -name "./hitachiastemo-tools/.git*" | xargs -I{} rm -rvf {};\
-          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
+          aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
+          tar -xzvf astemo-tools.tgz
+          mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
           echo "SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
 
       - name: Create control file
@@ -109,13 +111,15 @@ jobs:
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
-            pwd
-            ls -lsa
+            APTLY_DIR='/home/runner/.aptly'
+            jq --arg aptly_dir "$APTLY_DIR" '.rootDir = $aptly_dir' ".aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm /home/runner/aptly-db.tar
           else
+            S3_ENDPOINT='{"region": "${{ vars.AWS_REGION }}","bucket": "${{ vars.APT_REPO_S3 }}","acl": "public-read"}'
+            jq --argjson s3_endpoint "$S3_ENDPOINT" '.S3PublishEndpoints = $s3_endpoint' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf"
             aptly repo create apt-repo
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
@@ -125,7 +129,6 @@ jobs:
         run: |
           tar -czvf /home/runner/aptly-db.tar /home/runner/.aptly/db /home/runner/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp
           aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
-          aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
       - name: Remove .lock
         if: success() || failure()
