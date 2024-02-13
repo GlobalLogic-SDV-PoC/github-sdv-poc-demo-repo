@@ -91,8 +91,8 @@ jobs:
         run: |
           curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
           && echo "deb http://repo.aptly.info/ squeeze main" | sudo tee -a /etc/apt/sources.list
-          sudo apt-get -q update \
-          && sudo apt-get -y install aptly=1.5.0
+          apt-get -q update \
+          && apt-get -y install aptly=1.5.0
 
       - name: Check if repo used
         id: lockRepo
@@ -106,24 +106,25 @@ jobs:
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
           if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]
           then
-            aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar .
-            sudo tar -xzvf aptly-db.tar --directory /root/
+            aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
+            tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
             pwd
             ls -lsa
-            sudo gpg --import --batch /root/public.pgp /root/private.pgp
+            gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             sudo aptly repo list
+            aptly repo list
             sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            sudo aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
-            rm aptly-db.tar
+            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
+            rm /home/runner/aptly-db.tar
           else
-            sudo aptly repo create apt-repo
-            sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            sudo aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
+            aptly repo create apt-repo
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
+            aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
           fi 
 
       - name: Push package db to repo
         run: |
-          sudo tar -czvf /home/runner/aptly-db.tar /root/.aptly/db /root/.aptly.conf /root/public.pgp /root/private.pgp\
+          tar -czvf /home/runner/aptly-db.tar /home/runner/.aptly/db /home/runner/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp\
           aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar \
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
