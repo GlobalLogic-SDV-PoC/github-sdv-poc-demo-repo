@@ -108,23 +108,23 @@ jobs:
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
-            sudo mv -t /root/ /home/runner/.aptly /home/runner/.aptly.conf
+            chmod -R 777 /home/runner/.aptly/
             pwd
             ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
-            sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo apt-repo s3:${{ vars.APT_REPO_S3 }}:tools
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
+            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm /home/runner/aptly-db.tar
           else
-            sudo aptly repo create apt-repo
-            sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
+            aptly repo create apt-repo
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
           fi 
 
       - name: Push package db to repo
         run: |
-          sudo tar -czvf /home/runner/aptly-db.tar /root/.aptly/db /root/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp
-          aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
+          tar -czvf /home/runner/aptly-db.tar /home/runner/.aptly/db /home/runner/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp\
+          aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar \
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
 
