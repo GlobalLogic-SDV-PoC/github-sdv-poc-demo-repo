@@ -128,7 +128,7 @@ jobs:
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
       - name: Remove .lock
-        if: steps.pushPackage.outcome == 'failure'
+        if: success() || failure()
         run: |
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
