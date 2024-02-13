@@ -95,10 +95,12 @@ jobs:
           && sudo apt-get -y install aptly=1.5.0
 
       - name: Check if repo used
+        id: lockRepo
         run: |
           while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
       - name: Add package to aptly repo
+        if: steps.lockRepo.outcome == 'success
         run: |
           touch aptly-db.lock
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
@@ -106,6 +108,8 @@ jobs:
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
+            pwd
+            ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
