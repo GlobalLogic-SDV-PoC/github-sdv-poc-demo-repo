@@ -100,6 +100,7 @@ jobs:
 
       - name: Add package to aptly repo
         run: |
+          touch aptly-db.lock
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
           if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]
           then
