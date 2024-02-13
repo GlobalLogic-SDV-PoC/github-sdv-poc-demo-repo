@@ -22,6 +22,11 @@ on:
         - all
         - arm64
         - amd64
+      Depends:
+        description: 'Dependencies'
+        required: true
+        default: 'libc6'
+        type: string
 
 
 
@@ -37,33 +42,99 @@ jobs:
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v5.1.0
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          context: .
-          file: ./template.Dockerfile
-          push: false
-          tags: hitachiastemo-tools/tools:latest
-          secrets: |
-            "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
-            "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          build-args: |
-            PACKAGE_NAME=${{ vars.PACKAGE_NAME }}
-            VERSION=${{ inputs.Version }}
-            RELEASE_NUM=${{ inputs.ReleaseNum}}
-            ARCH=${{ inputs.Architecture}}
-            DESCRIPTION=Customized LLVM
-            SRC_FOLDER=hitachiastemo-tools
-            DST_FOLDER=tools
-            HOMEPAGE=https://www.hitachiastemo.com
-            DEPS=libc6
-            MAINTAINER_NAME=${{ github.actor }}
-            MAINTAINER_EMAIL=ha@dropmail.cc
-            APT_REPO_S3=${{ vars.APT_REPO_S3 }}
-            AWS_REGION=${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+# FIX
+      - name: Download files
+        run: |
+          aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
+          tar -xzvf astemo-tools.tgz
+          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/
+          mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
+
+      - name: Create control file
+        run: |
+          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN && \
+          echo "Package: ${{ vars.PACKAGE_NAME }} \n\
+            Provides: ${{ vars.PACKAGE_NAME }} (= ${{ inputs.Version }}) \n\
+            Version: ${{ inputs.Version }} \n\
+            Maintainer: ${{ github.actor }} <ha@dropmail.cc> \n\
+            Depends: ${{ inputs.Depends }} \n\
+            Section: utils \n\
+            Priority: optional \n\
+            Architecture: ${{ inputs.Architecture}} \n\
+            Homepage: https://www.hitachiastemo.com \n\
+            Installed-Size: $(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 )) \n\
+            Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
+
+      - name: Build package
+        run: |
+          dpkg --build ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}
+
+      - name: Install aptly
+        run: |
+          curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
+          && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
+          apt-get -q update \
+          && apt-get -y install aptly=1.5.0
+
+      - name: Check if repo used
+        run: |
+          while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
+
+      - name: Add package to aptly repo
+        run: |
+          aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock \
+          if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]; \
+          then aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar . \
+          tar -xzvf aptly-db.tar  \
+          gpg --import --batch public.pgp private.pgp \
+          aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb \
+          aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools \
+          rm aptly-db.tar;
+          else aptly repo create apt-repo \
+          aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb \
+          aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools; fi 
+
+      - name: Push package db to repo
+        run: |
+          tar -czvf aptly-db.tar .aptly/db .aptly.conf public.pgp private.pgp\
+          aws s3 cp aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar \
+          aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
+
+
+      # - name: Build and push
+      #   uses: docker/build-push-action@v5.1.0
+      #   with:
+      #     context: .
+      #     file: ./template.Dockerfile
+      #     push: false
+      #     tags: hitachiastemo-tools/tools:latest
+      #     secrets: |
+      #       "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
+      #       "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+      #     build-args: |
+      #       PACKAGE_NAME=${{ vars.PACKAGE_NAME }}
+      #       VERSION=${{ inputs.Version }}
+      #       RELEASE_NUM=${{ inputs.ReleaseNum}}
+      #       ARCH=${{ inputs.Architecture}}
+      #       DESCRIPTION=Customized LLVM
+      #       SRC_FOLDER=hitachiastemo-tools
+      #       DST_FOLDER=tools
+      #       HOMEPAGE=https://www.hitachiastemo.com
+      #       DEPS=libc6
+      #       MAINTAINER_NAME=${{ github.actor }}
+      #       MAINTAINER_EMAIL=ha@dropmail.cc
+      #       APT_REPO_S3=${{ vars.APT_REPO_S3 }}
+      #       AWS_REGION=${{ vars.AWS_REGION }}
