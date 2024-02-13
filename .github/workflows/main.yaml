@@ -65,7 +65,8 @@ jobs:
 
       - name: Create control file
         run: |
-          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN && \
+          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN
+          export SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))
           echo "Package: ${{ vars.PACKAGE_NAME }} \n\
             Provides: ${{ vars.PACKAGE_NAME }} (= ${{ inputs.Version }}) \n\
             Version: ${{ inputs.Version }} \n\
@@ -75,7 +76,7 @@ jobs:
             Priority: optional \n\
             Architecture: ${{ inputs.Architecture}} \n\
             Homepage: https://www.hitachiastemo.com \n\
-            Installed-Size: $(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 )) \n\
+            Installed-Size: $SIZE \n\
             Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
 
       - name: Build package
