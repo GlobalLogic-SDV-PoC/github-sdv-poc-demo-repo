@@ -100,7 +100,7 @@ jobs:
           while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
 
       - name: Add package to aptly repo
-        if: steps.lockRepo.outcome == 'success
+        if: steps.lockRepo.outcome == 'success'
         run: |
           touch aptly-db.lock
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
