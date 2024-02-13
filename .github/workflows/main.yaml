@@ -120,10 +120,14 @@ jobs:
             ls -lsa
             ls -lsa home/runner/
             gpg --import --batch home/runner/public.pgp home/runner/private.pgp
+            APTLY_DIR='home/runner/.aptly'
+            jq --arg aptly_dir "$APTLY_DIR" '.rootDir = $aptly_dir' "home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "home/runner/.aptly.conf"
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm home/runner/aptly-db.tar
           else
+            S3_ENDPOINT='{${{ vars.APT_REPO_S3 }}"{"region": ${{ vars.AWS_REGION }},"bucket": ${{ vars.APT_REPO_S3 }},"acl": "public-read"}}'
+            jq --argjson s3_endpoint "$S3_ENDPOINT" '.S3PublishEndpoints = $s3_endpoint' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf"
             aptly repo create apt-repo
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
