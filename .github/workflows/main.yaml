@@ -113,12 +113,12 @@ jobs:
             ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            sudo aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
+            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm /home/runner/aptly-db.tar
           else
             sudo aptly repo create apt-repo
             sudo aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            sudo aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
+            aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
           fi 
 
       - name: Push package db to repo
