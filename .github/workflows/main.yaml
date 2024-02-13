@@ -64,6 +64,7 @@ jobs:
           mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
 
       - name: Create control file
+        shell: bash
         run: |
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN
           echo "SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
@@ -76,7 +77,7 @@ jobs:
           Priority: optional
           Architecture: ${{ inputs.Architecture}}
           Homepage: https://www.hitachiastemo.com
-          Installed-Size: $SIZE
+          Installed-Size: ${{ env.SIZE }}
           Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
           cat ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
 
@@ -86,10 +87,10 @@ jobs:
 
       - name: Install aptly
         run: |
-          curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
+          curl -sL https://www.aptly.info/pubkey.txt | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/aptly.gpg >/dev/null \
           && echo "deb http://repo.aptly.info/ squeeze main" >> /etc/apt/sources.list
-          apt-get -q update \
-          && apt-get -y install aptly=1.5.0
+          sudo apt-get -q update \
+          && sudo apt-get -y install aptly=1.5.0
 
       - name: Check if repo used
         run: |
