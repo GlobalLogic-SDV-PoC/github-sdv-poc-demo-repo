@@ -56,11 +56,11 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
 # FIX
+          # aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
+          # tar -xzvf astemo-tools.tgz
 # mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
       - name: Download files
         run: |
-          aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
-          tar -xzvf astemo-tools.tgz
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/
           find . -name "./hitachiastemo-tools/.git" -o -name "./hitachiastemo-tools/.git*" | xargs -I{} rm -rvf {};\
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
@@ -100,17 +100,18 @@ jobs:
 
       - name: Add package to aptly repo
         run: |
-          aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock \
-          if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]; then
+          aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
+          if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]
+          then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar .
-            tar -xzvf aptly-db.tar  \
-            gpg --import --batch public.pgp private.pgp \
-            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb \
-            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools \
+            tar -xzvf aptly-db.tar
+            gpg --import --batch public.pgp private.pgp
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
+            aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
             rm aptly-db.tar
           else
-            aptly repo create apt-repo \
-            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb \
+            aptly repo create apt-repo
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish repo --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
           fi 
 
