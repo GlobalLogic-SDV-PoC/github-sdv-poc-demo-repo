@@ -68,16 +68,16 @@ jobs:
           mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN
           echo "SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
           echo "Package: ${{ vars.PACKAGE_NAME }}
-            Provides: ${{ vars.PACKAGE_NAME }} (= ${{ inputs.Version }})
-            Version: ${{ inputs.Version }}
-            Maintainer: ${{ github.actor }} <ha@dropmail.cc>
-            Depends: ${{ inputs.Depends }}
-            Section: utils
-            Priority: optional
-            Architecture: ${{ inputs.Architecture}}
-            Homepage: https://www.hitachiastemo.com
-            Installed-Size: ${SIZE}
-            Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
+          Provides: ${{ vars.PACKAGE_NAME }} (= ${{ inputs.Version }})
+          Version: ${{ inputs.Version }}
+          Maintainer: ${{ github.actor }} <ha@dropmail.cc>
+          Depends: ${{ inputs.Depends }}
+          Section: utils
+          Priority: optional
+          Architecture: ${{ inputs.Architecture}}
+          Homepage: https://www.hitachiastemo.com
+          Installed-Size: $SIZE
+          Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
           cat ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
 
       - name: Build package
