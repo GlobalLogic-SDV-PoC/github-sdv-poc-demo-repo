@@ -123,8 +123,8 @@ jobs:
 
       - name: Push package db to repo
         run: |
-          tar -czvf /home/runner/aptly-db.tar /home/runner/.aptly/db /home/runner/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp\
-          aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar \
+          tar -czvf /home/runner/aptly-db.tar /home/runner/.aptly/db /home/runner/.aptly.conf /home/runner/public.pgp /home/runner/private.pgp
+          aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
           aws s3 rm s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
 
       - name: Remove .lock
