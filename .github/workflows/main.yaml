@@ -118,6 +118,7 @@ jobs:
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
             pwd
             ls -lsa
+            ls -lsa /home/runner/
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=E4427DA3 --passphrase=mykhailo stable s3:${{ vars.APT_REPO_S3 }}:tools
