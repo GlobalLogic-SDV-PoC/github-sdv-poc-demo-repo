@@ -108,7 +108,7 @@ jobs:
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
-            mv -t /root/ /home/runner/.aptly /home/runner/.aptly.conf
+            sudo mv -t /root/ /home/runner/.aptly /home/runner/.aptly.conf
             pwd
             ls -lsa
             gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
