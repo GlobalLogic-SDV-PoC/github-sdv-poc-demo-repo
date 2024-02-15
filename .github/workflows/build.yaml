@@ -16,11 +16,8 @@ on:
         description: 'Architecture'
         required: true
         default: 'all'
-        type: choice
-        options:
-        - all
-        - arm64
-        - amd64
+        type: string
+
 
 
 
