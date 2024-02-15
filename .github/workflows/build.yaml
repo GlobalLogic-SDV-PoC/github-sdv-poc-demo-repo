@@ -62,7 +62,7 @@ jobs:
       - name: Check if repo used
         id: lockRepo
         run: |
-          while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" ; done
+          while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" && sleep 15 ; done
 
 
       - name: Add package to aptly repo
