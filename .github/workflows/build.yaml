@@ -81,7 +81,7 @@ jobs:
             jq --arg aptly_dir "$APTLY_DIR" '.rootDir = $aptly_dir' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf"
             aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
             aptly publish update --batch=true --gpg-key=${{ secrets.GPG_KEY_ID }} --passphrase=${{ secrets.GPG_KEY_PASS }} stable s3:${{ vars.APT_REPO_S3 }}:tools
-            rm home/runner/aptly-db.tar
+            rm /home/runner/aptly-db.tar
           else
             aptly list repo
             S3_ENDPOINT='{${{ vars.APT_REPO_S3 }}"{"region": ${{ vars.AWS_REGION }},"bucket": ${{ vars.APT_REPO_S3 }},"acl": "public-read"}}'
@@ -94,7 +94,7 @@ jobs:
       - name: Push package db to repo
         run: |
           tar -czvf /home/runner/aptly-db.tar --directory /home/runner/ .aptly/db .aptly.conf public.pgp private.pgp
-          aws s3 cp home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
+          aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
 
       - name: Remove .lock
         if: success() || failure()
