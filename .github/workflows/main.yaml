@@ -8,11 +8,6 @@ on:
         required: true
         default: 1.0.0
         type: number
-      ReleaseNum:
-        description: 'Release Num'
-        required: true
-        default: 1
-        type: number
       Architecture:
         description: 'Architecture'
         required: true

@@ -21,20 +21,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Set REPO_NAME variable
+        run: echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+
+
 # FIX
       - name: Download files
         run: |
-          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/
-          find . -name "./hitachiastemo-tools/.git" -o -name "./hitachiastemo-tools/.git*" | xargs -I{} rm -rvf {};\
-          aws s3 cp s3://${{ vars.APT_REPO_S3 }}/astemo-tools.tgz .
-          tar -xzvf astemo-tools.tgz
-          mv ./hitachiastemo-tools ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/opt/src
-          echo "SIZE=$(( $(du -sb ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}} | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
+          aws s3 cp s3://${{ vars.APT_REPO_S3 }}//astemo-tools.tgz .
+          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/opt/${{ vars.PACKAGE_DST }}
+          tar -xf astemo-tools.tgz -C ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/opt/${{ vars.PACKAGE_DST }}
+          cd ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/opt/${{ vars.PACKAGE_DST }}
+          find . -name ".git" -o -name ".git*" | xargs -I{} rm -rf {}
+          echo "SIZE=$(( $(du -sb . | awk '{print $1}') / 1024 ))" >> $GITHUB_ENV
 
       - name: Create control file
         shell: bash
         run: |
-          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN
+          mkdir -p ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/DEBIAN
           echo "Package: ${{ vars.PACKAGE_NAME }}
           Provides: ${{ vars.PACKAGE_NAME }} (= ${{ inputs.Version }})
           Version: ${{ inputs.Version }}
@@ -45,12 +49,12 @@ jobs:
           Architecture: ${{ inputs.Architecture}}
           Homepage: https://www.hitachiastemo.com
           Installed-Size: ${{ env.SIZE }}
-          Description: Customized LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
-          cat ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}/DEBIAN/control
+          Description: Customized Qualcomm LLVM" > ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/DEBIAN/control
+          cat ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}/DEBIAN/control
 
       - name: Build package
         run: |
-          dpkg --build ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}
+          dpkg --build ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}
 
       - name: Install aptly
         run: |
@@ -64,36 +68,36 @@ jobs:
         run: |
           while [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, 'db/aptly-db.lock')") == true ]; do echo "File .lock exists" && sleep 15 ; done
 
-
       - name: Add package to aptly repo
         if: steps.lockRepo.outcome == 'success'
         id: pushPackage
         run: |
+          env
           touch aptly-db.lock
           aws s3 cp aptly-db.lock s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.lock
-          if [ $(aws s3api list-objects-v2 --bucket ${{ vars.APT_REPO_S3 }} --query "contains(Contents[].Key, '/db/aptly-db.tar')") ]
+          if aws s3 ls ${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
           then
             aws s3 cp s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar /home/runner/
             tar -xzvf /home/runner/aptly-db.tar --directory /home/runner/
-            ls -lsa /home/runner/
-            gpg --import --batch /home/runner/public.pgp /home/runner/private.pgp
             APTLY_DIR='/home/runner/.aptly'
             jq --arg aptly_dir "$APTLY_DIR" '.rootDir = $aptly_dir' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf"
-            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            aptly publish update --batch=true --gpg-key=${{ secrets.GPG_KEY_ID }} --passphrase=${{ secrets.GPG_KEY_PASS }} stable s3:${{ vars.APT_REPO_S3 }}:tools
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}.deb
+            aptly publish update --batch=true --gpg-key=${{ secrets.GPG_KEY_ID }} --passphrase=${{ secrets.GPG_KEY_PASS }} stable s3:${{ vars.APT_REPO_S3 }}:
             rm /home/runner/aptly-db.tar
           else
-            aptly list repo
-            S3_ENDPOINT='{${{ vars.APT_REPO_S3 }}"{"region": ${{ vars.AWS_REGION }},"bucket": ${{ vars.APT_REPO_S3 }},"acl": "public-read"}}'
-            jq --argjson s3_endpoint "$S3_ENDPOINT" '.S3PublishEndpoints = $s3_endpoint' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf "/home/runner/.aptly.conf"
             aptly repo create apt-repo
-            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${{ inputs.ReleaseNum}}_${{ inputs.Architecture}}.deb
-            aptly publish repo --batch=true --gpg-key=${{ secrets.GPG_KEY_ID }} --passphrase=${{ secrets.GPG_KEY_PASS }} --component=main --distribution=stable s3:${{ vars.APT_REPO_S3 }}:tools
-          fi 
+            aptly repo add apt-repo ${{ vars.PACKAGE_NAME }}_${{ inputs.Version }}-${GITHUB_RUN_NUMBER}_${{ inputs.Architecture}}.deb
+            S3_ENDPOINT='{"${{ vars.APT_REPO_S3 }}":{"region": "${{ vars.AWS_REGION }}", "bucket": "${{ vars.APT_REPO_S3 }}", "acl": "public-read"}}'
+            jq --argjson s3_endpoint "$S3_ENDPOINT" '.S3PublishEndpoints = $s3_endpoint' "/home/runner/.aptly.conf" > tmp.conf && mv tmp.conf /home/runner/.aptly.conf
+            gpg --batch --passphrase '' --quick-gen-key USER_ID default default
+            aptly publish repo --architectures=amd64,i386 --batch=true --gpg-key=${{ secrets.GPG_KEY_ID }} --passphrase=${{ secrets.GPG_KEY_PASS }} --component=main --distribution=stable apt-repo s3:${{ vars.APT_REPO_S3 }}:
+          fi
+        env:
+          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }} 
 
       - name: Push package db to repo
         run: |
-          tar -czvf /home/runner/aptly-db.tar --directory /home/runner/ .aptly/db .aptly.conf public.pgp private.pgp
+          tar -czvf /home/runner/aptly-db.tar --directory /home/runner/ .aptly/db .aptly.conf .gnupg
           aws s3 cp /home/runner/aptly-db.tar s3://${{ vars.APT_REPO_S3 }}/db/aptly-db.tar
 
       - name: Remove .lock
