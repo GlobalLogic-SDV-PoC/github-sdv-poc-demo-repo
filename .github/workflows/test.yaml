@@ -1,0 +1,45 @@
+name: Test
+on:
+  workflow_call:
+
+
+
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ansible_runner ./ansible
+
+      - name: Create test infrastructure
+        run: |
+          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }}  \
+          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
+          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+          ansible_runner playbook.yml --extra-vars "project_name=${{ GITHUB_RUN_ID }}-test state=present"
+          docker cp ansible_runner_container:/app/output .
+        
+      - name: Run test
+        run: |
+          cat output
+
+      - name: Destroy test infrastructure
+        run: |
+          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }}  \
+          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
+          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+          ansible_runner playbook.yml --extra-vars "project_name=${{ GITHUB_RUN_ID }}-test state=absent"

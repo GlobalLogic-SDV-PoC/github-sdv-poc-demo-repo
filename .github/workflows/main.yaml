@@ -26,7 +26,11 @@ on:
 
 
 jobs:
-  build:
-    name: Build
-    uses: ./.github/workflows/build.yaml
+  # build:
+  #   name: Build
+  #   uses: ./.github/workflows/build.yaml
+  #   secrets: inherit
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yaml
     secrets: inherit
