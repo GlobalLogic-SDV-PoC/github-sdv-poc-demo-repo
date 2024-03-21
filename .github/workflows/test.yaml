@@ -20,9 +20,9 @@ jobs:
 
       - name: Create test infrastructure
         run: |
-          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }}  \
-          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
-          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }} \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
           ansible_runner playbook.yml --extra-vars "project_name=${{ env.GITHUB_RUN_ID }}-test state=present"
           docker cp ansible_runner_container:/app/output .
         
@@ -32,7 +32,7 @@ jobs:
 
       - name: Destroy test infrastructure
         run: |
-          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }}  \
-          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
-          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+          docker run --name ansible_runner_container -e AWS_REGION=${{ vars.AWS_REGION }} \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
           ansible_runner playbook.yml --extra-vars "project_name=${{ env.GITHUB_RUN_ID }}-test state=absent"
