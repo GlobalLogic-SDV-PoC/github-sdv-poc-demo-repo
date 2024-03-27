@@ -1,3 +1,5 @@
-Private IP Address: {{ ec2.instances[0].private_ip_address }}
-Default UserName: ubuntu
-Instance user SSH key: {{ ec2_key.key.private_key }}
+{
+  Private_IP_Address: "{{ ec2.instances[0].private_ip_address }}",
+  Default_UserName: "ubuntu",
+  Instance_user_SSH_key: "{{ ec2_key.key.private_key }}",
+}

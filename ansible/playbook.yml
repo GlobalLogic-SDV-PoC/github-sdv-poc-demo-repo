@@ -44,5 +44,5 @@
       ansible.builtin.template:
         mode: "0600"
         src: output_template.j2
-        dest: output
+        dest: output.json
       when: state == "present"

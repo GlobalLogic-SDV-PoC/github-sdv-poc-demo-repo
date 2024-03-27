@@ -28,7 +28,7 @@ jobs:
         
       - name: Run test
         run: |
-          cat output
+          cat output.json
 
       - name: Destroy test infrastructure
         run: |
